@@ -439,6 +439,8 @@ return function (global, window, document, undefined) {
        Helper Functions
     *********************/
 
+    var velocityUtils = {};
+
     /* IE detection. Gist: https://gist.github.com/julianshapiro/9098609 */
     var IE = (function() {
         if (document.documentMode) {
@@ -1636,7 +1638,7 @@ return function (global, window, document, undefined) {
                         CSS.setPropertyValue(element, "display", CSS.Values.getDisplayType(element));
                     }
 
-                    function revertDisplay () {
+                    velocityUtils.revertDisplay = function () {
                         if (toggleDisplay) {
                             CSS.setPropertyValue(element, "display", "none");
                         }
@@ -1645,12 +1647,12 @@ return function (global, window, document, undefined) {
                     if (!forceStyleLookup) {
                         if (property === "height" && CSS.getPropertyValue(element, "boxSizing").toString().toLowerCase() !== "border-box") {
                             var contentBoxHeight = element.offsetHeight - (parseFloat(CSS.getPropertyValue(element, "borderTopWidth")) || 0) - (parseFloat(CSS.getPropertyValue(element, "borderBottomWidth")) || 0) - (parseFloat(CSS.getPropertyValue(element, "paddingTop")) || 0) - (parseFloat(CSS.getPropertyValue(element, "paddingBottom")) || 0);
-                            revertDisplay();
+                            velocityUtils.revertDisplay();
 
                             return contentBoxHeight;
                         } else if (property === "width" && CSS.getPropertyValue(element, "boxSizing").toString().toLowerCase() !== "border-box") {
                             var contentBoxWidth = element.offsetWidth - (parseFloat(CSS.getPropertyValue(element, "borderLeftWidth")) || 0) - (parseFloat(CSS.getPropertyValue(element, "borderRightWidth")) || 0) - (parseFloat(CSS.getPropertyValue(element, "paddingLeft")) || 0) - (parseFloat(CSS.getPropertyValue(element, "paddingRight")) || 0);
-                            revertDisplay();
+                            velocityUtils.revertDisplay();
 
                             return contentBoxWidth;
                         }
@@ -1691,7 +1693,7 @@ return function (global, window, document, undefined) {
                         computedValue = element.style[property];
                     }
 
-                    revertDisplay();
+                    velocityUtils.revertDisplay();
                 }
 
                 /* For top, right, bottom, and left (TRBL) values that are set to "auto" on elements of "fixed" or "absolute" position,
@@ -1882,21 +1884,21 @@ return function (global, window, document, undefined) {
             if ((IE || (Velocity.State.isAndroid && !Velocity.State.isChrome)) && Data(element).isSVG) {
                 /* Since transform values are stored in their parentheses-wrapped form, we use a helper function to strip out their numeric values.
                    Further, SVG transform properties only take unitless (representing pixels) values, so it's okay that parseFloat() strips the unit suffixed to the float value. */
-                function getTransformFloat (transformProperty) {
+                velocityUtils.getTransformFloat = function (transformProperty) {
                     return parseFloat(CSS.getPropertyValue(element, transformProperty));
                 }
 
                 /* Create an object to organize all the transforms that we'll apply to the SVG element. To keep the logic simple,
                    we process *all* transform properties -- even those that may not be explicitly applied (since they default to their zero-values anyway). */
                 var SVGTransforms = {
-                    translate: [ getTransformFloat("translateX"), getTransformFloat("translateY") ],
-                    skewX: [ getTransformFloat("skewX") ], skewY: [ getTransformFloat("skewY") ],
+                    translate: [ velocityUtils.getTransformFloat("translateX"), velocityUtils.getTransformFloat("translateY") ],
+                    skewX: [ velocityUtils.getTransformFloat("skewX") ], skewY: [ velocityUtils.getTransformFloat("skewY") ],
                     /* If the scale property is set (non-1), use that value for the scaleX and scaleY values
                        (this behavior mimics the result of animating all these properties at once on HTML elements). */
-                    scale: getTransformFloat("scale") !== 1 ? [ getTransformFloat("scale"), getTransformFloat("scale") ] : [ getTransformFloat("scaleX"), getTransformFloat("scaleY") ],
+                    scale: velocityUtils.getTransformFloat("scale") !== 1 ? [ velocityUtils.getTransformFloat("scale"), velocityUtils.getTransformFloat("scale") ] : [ velocityUtils.getTransformFloat("scaleX"), velocityUtils.getTransformFloat("scaleY") ],
                     /* Note: SVG's rotate transform takes three values: rotation degrees followed by the X and Y values
                        defining the rotation's origin point. We ignore the origin values (default them to 0). */
-                    rotate: [ getTransformFloat("rotateZ"), 0, 0 ]
+                    rotate: [ velocityUtils.getTransformFloat("rotateZ"), 0, 0 ]
                 };
 
                 /* Iterate through the transform properties in the user-defined property map order.
@@ -2688,7 +2690,7 @@ return function (global, window, document, undefined) {
                        or 2) an array in the form of [ endValue, [, easing] [, startValue] ].
                        The optional third parameter is a forcefed startValue to be used instead of querying the DOM for
                        the element's current value. Read Velocity's docmentation to learn more about forcefeeding: VelocityJS.org/#forcefeeding */
-                    function parsePropertyValue (valueData, skipResolvingEasing) {
+                    velocityUtils.parsePropertyValue = function (valueData, skipResolvingEasing) {
                         var endValue = undefined,
                             easing = undefined,
                             startValue = undefined;
@@ -2743,7 +2745,7 @@ return function (global, window, document, undefined) {
                         /* Find shorthand color properties that have been passed a hex string. */
                         if (RegExp("^" + CSS.Lists.colors.join("$|^") + "$").test(property)) {
                             /* Parse the value data for each shorthand. */
-                            var valueData = parsePropertyValue(value, true),
+                            var valueData = velocityUtils.parsePropertyValue(value, true),
                                 endValue = valueData[0],
                                 easing = valueData[1],
                                 startValue = valueData[2];
@@ -2783,7 +2785,7 @@ return function (global, window, document, undefined) {
                         **************************/
 
                         /* Parse out endValue, easing, and startValue from the property's data. */
-                        var valueData = parsePropertyValue(propertiesMap[property]),
+                        var valueData = velocityUtils.parsePropertyValue(propertiesMap[property]),
                             endValue = valueData[0],
                             easing = valueData[1],
                             startValue = valueData[2];
@@ -2859,7 +2861,7 @@ return function (global, window, document, undefined) {
                             operator = false;
 
                         /* Separates a property value into its numeric value and its unit type. */
-                        function separateValue (property, value) {
+                        velocityUtils.separateValue = function (property, value) {
                             var unitType,
                                 numericValue;
 
@@ -2884,12 +2886,12 @@ return function (global, window, document, undefined) {
                         }
 
                         /* Separate startValue. */
-                        separatedValue = separateValue(property, startValue);
+                        separatedValue = velocityUtils.separateValue(property, startValue);
                         startValue = separatedValue[0];
                         startValueUnitType = separatedValue[1];
 
                         /* Separate endValue, and extract a value operator (e.g. "+=", "-=") if one exists. */
-                        separatedValue = separateValue(property, endValue);
+                        separatedValue = velocityUtils.separateValue(property, endValue);
                         endValue = separatedValue[0].replace(/^([+-\/*])=/, function(match, subMatch) {
                             operator = subMatch;
 
@@ -2941,7 +2943,7 @@ return function (global, window, document, undefined) {
                            of batching the SETs and GETs together upfront outweights the potential overhead
                            of layout thrashing caused by re-querying for uncalculated ratios for subsequently-processed properties. */
                         /* Todo: Shift this logic into the calls' first tick instance so that it's synced with RAF. */
-                        function calculateUnitRatios () {
+                        velocityUtils.calculateUnitRatios = function () {
 
                             /************************
                                 Same Ratio Checks
@@ -3060,7 +3062,7 @@ return function (global, window, document, undefined) {
                             } else {
                                 /* By this point, we cannot avoid unit conversion (it's undesirable since it causes layout thrashing).
                                    If we haven't already, we trigger calculateUnitRatios(), which runs once per element per call. */
-                                elementUnitConversionData = elementUnitConversionData || calculateUnitRatios();
+                                elementUnitConversionData = elementUnitConversionData || velocityUtils.calculateUnitRatios();
 
                                 /* The following RegEx matches CSS properties that have their % values measured relative to the x-axis. */
                                 /* Note: W3C spec mandates that all of margin and padding's properties (even top and bottom) are %-relative to the *width* of the parent element. */
